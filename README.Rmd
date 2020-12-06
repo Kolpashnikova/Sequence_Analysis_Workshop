@@ -1,45 +1,72 @@
-#### History of SA in Social Sciences ####
-# although sequence analysis has been used for a long time, it only took off
-# in social science
-# since the development of TraMineR package in R (thanks to Geneva team)
-# although the name of the package is commonly pronounced as truh-mai-ner
-# it is likely that originally it should be truh-mee-ner
-# because it's a type of grape
+---
+title: "Workshop: Doing Sequence Analysis"
+author: Kamila Kolpashnikova^[University of Oxford]
 
-# IMPORTANT
-# sequence analysis is largely a descriptive technique
+output: html_document
+---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Introduction
 
-#### Loading Necessary Packages ####
+This is a document for the workshop prepared in 2020 for the Department of Sociology. 
+
+To follow this tutotial, you need to have the harmonized version of the Taiwan 2004 time use data and access to it.
+
+* change the directory to the location of your file
+* follow instructions in the code (R file is included)
+
+Funding: This project has received funding from the European Union’s Horizon 2020 research and innovation programme under the Marie Sklodowska-Curie grant agreement No 892101 (awardee: Kamila Kolpashnikova). 
+
+## History of SA in Social Sciences
+
+Although sequence analysis has been used for a long time, it only took off in social science since the development of TraMineR package in R (thanks to Geneva team).
+The name of the package is commonly pronounced as truh-mai-ner, but it is likely that originally it should be truh-mee-ner because it's a type of grape.
+
+It is important to remember that sequence analysis is largely a descriptive technique. It does not aim to establish causal links.
+
+## Loading Necessary Packages
+
+```{r}
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 
 # load and install packages
 pacman::p_load(TraMineR, TraMineRextras, cluster, RColorBrewer, devtools, haven, 
                tidyverse, reshape2, WeightedCluster, nnet)
+```
 
-## load dta dataset
-## remember that in r, it's forward slashes
-## unlike read.dta read_dta reads all versions of stata
+## Load .dta (Stata) Dataset
+Remember that in r, it's forward slashes.
+Unlike read.dta, read_dta reads all versions of stata files.
+
+
+```{r}
 data<-read_dta("~/Dropbox/GenTime research - shared all/workshopSA/Taiwan 2004 sequences.dta")
 
 ## create id if id is not present in the dataset
 data$id <- as.numeric(paste(data$HLDID, data$PERSID, sep = ""))
+```
 
-## specify the names for the activity variables
+Specify the names for the activity variables. These are the names we harmonized using the agreed naming conventions.
+
+```{r}
 activities<-c()
 for(i in 1:96) {
   activities<-c(activities, paste("act_h", i, sep = ""))
 }
 
 activities
+```
 
 
+## Sequence Analysis 
 
-#### Sequence Analysis #####
+I created an object with time intervals' labels. Sequences start at 00:00 AM (for the Taiwanese dataset).
+Depending on your own sequence intervals, these labels need to be adjusted accordingly.
 
-# I create an object with intervals' labels. Sequences start at 00:00 AM:
-# depending on your own sequence intervals these labels need to be adjusted
+```{r}
 t_intervals_labels <-  c("00:00", "00:15","00:30","00:45",
                          "01:00", "01:15","01:30","01:45",
                          "02:00", "02:15","02:30","02:45",
@@ -64,18 +91,24 @@ t_intervals_labels <-  c("00:00", "00:15","00:30","00:45",
                          "21:00", "21:15","21:30","21:45",
                          "22:00", "22:15","22:30","22:45",
                          "23:00", "23:15","23:30","23:45")
+```
 
-#### colour palette ####
+## Colour Palette
 
-## let's brew some colours first
-## number of colours is the number of states (in the alphabet)
-## interesting resource on colors (cheatsheet): 
-## https://www.nceas.ucsb.edu/sites/default/files/2020-04/colorPaletteCheatsheet.pdf
+In my experience, brewing colours in R is one of the most painful experiences, especially if you have many categories of activities. Things can get even worse if you have to go grayscale if publishing articles with colour images is too expensive.
+
+Let's brew some colours first.The number of colours is dictated by the number of states (in the alphabet).
+
+Interesting resource on colors [(cheatsheet):](https://www.nceas.ucsb.edu/sites/default/files/2020-04/colorPaletteCheatsheet.pdf)
+
+
+```{r}
 colourCount = 13
 getPalette = colorRampPalette(brewer.pal(9, "Set3"))
+```
 
-## to check the created pallette: 
-## define labels first and count:
+To check the created pallette, you can do the following but define labels first:
+```{r}
 labels = c("sleep", "selfcare", 
            "eatdrink", "commute",
            "paidwork", "educatn", "housework",
@@ -101,15 +134,12 @@ ggplot() +
   geom_rect(data=colours, mapping=aes(xmin=x1, xmax=x2, ymin=y1, ymax=y2, fill=t), color="black", alpha=0.5) +
   geom_text(data=colours, aes(x=x1+(x2-x1)/2, y=y1+(y2-y1)/2, label=r), size=4) + 
   scale_fill_manual(values = getPalette(colourCount)) + theme(legend.position = "none")
+```
 
+## Defining Sequence Object
 
-
-#### define the sequence object ####
-# 
-# subset the data if you need to
-# data <- data[which(data$v19==1),]
+```{r , message=FALSE}
 MyData <- as_tibble(data)
-
 
 ## you want to use the full categories of states:
 ## (you need to change if you only focus on specific activities)
@@ -129,30 +159,42 @@ gentime_seq <- seqdef(MyData,
                         cpal = getPalette(colourCount),
                         xtstep = 18, ##step between displayed tick-marks and labels on the time x-axis
                         id = MyData$id)
-## if you have weights then add ===>  weights = MyData$Weight)
 
-## check how the sequence looks like
+```
+## Weights
+If you have weights then add ===>  weights = MyData$Weight in your sequence object definition above.
+
+Check how the sequences look like:
+```{r}
 print(gentime_seq[1:5, ], format = "SPS")
-## "STS" format shows each step
+```
 
-#### PLOTTING SEQUENCES ####
+If you use the "STS" format, it will show each step
 
-#### sequence index plots ####
-## tlim used to show the sequences to plot
-## now they use idxs 
-## the default is 1:10 plotting the first 10 sequences
-## if you set it to 0, it plots all
+## Plotting Sequences
+
+- sequence index plots
+
+With a small i, the default for idxs is 1:10, plotting the first 10 sequences.
+If you set idxs to 0, it plots all sequences (might take a long time).
+
+```{r}
 seqiplot(gentime_seq, border = NA, with.legend = "right", legend.prop=0.4)
+```
 
-##also to plot all you can use seqIplot
+You can also use the same command with a capital I. It wiil plot all unless you specify idxs option.
+
+```{r}
 seqIplot(gentime_seq, border = NA, with.legend = "right", legend.prop=0.4, idxs = 1:4)
-## seqIplot(gentime_seq, border = NA, with.legend = "right", legend.prop=0.4)
-## the difference is that capital I has idxs=0 as default -- do not run the commented line right now, it will take forever
+```
 
-## MOST FREQUENT SEQUENCES --usually useless for time-use sequences with many steps
-## tabulate 4 frequent sequences:
-## because there are 96 steps there are barely any
-## this is more useful for shorter sequences with many commonalities (as in life-course research)
+- the most frequent sequences 
+
+Unfortunately, for time-use data, it is usually useless to plot the most frequent sequences.
+If you tabulate 4 frequent sequences you will see what I mean. It is because there are 96 steps there are barely any same sequences.
+This command is more useful for shorter sequences with many commonalities (as in life-course research).
+
+```{r}
 seqtab(gentime_seq, idxs = 1:4)
 
 ## Plot of the 10 most frequent sequences
@@ -162,52 +204,67 @@ seqplot(gentime_seq, type="f", with.legend = "right", legend.prop=0.4)
 seqfplot(gentime_seq, border = NA, with.legend = "right", legend.prop=0.4)
 ##again, frequencies is not very useful for TU seqs
 ##because very few of them repeat themselves with 96 steps
+```
 
-## state distribution plots (aka tempogram aka chronogram)
-## this is an easy way to plot a tempogram 
+- tempograms 
+
+State distribution plots (aka tempogram aka chronogram)
+This is an easy way to plot a tempogram (compared to area plots).
+
+```{r}
 seqdplot(gentime_seq, border = NA, with.legend = "right", legend.prop=0.4)
+```
 
-#### Transitions ####
+## Transitions
 
+```{r}
 ## transitions from state to state (in probabilities)
 trate <- seqtrate(gentime_seq)
 round(trate, 2)
 
 ## heatmap of the transitions matrix
 heatTrate=melt(trate)
-head(heatTrate)
-
 ggplot(heatTrate, aes(Var2, Var1)) +
   geom_tile(aes(fill = value)) +
   geom_text(aes(label = round(value, 2))) +
   scale_fill_continuous(high = "#132B43", low = "#56B1F7", name="Transitions")
+```
 
+## Changing Granularity (Minutes to Hours, etc.)
+TraMineR made it very easy to change the number of steps in a sequence.
+*seqgranularity* is the command that will help you do it.
 
-#### changing granularity (number of steps in a sequence) ####
-## changing the number of steps
-## to the first method = "first", to the last = "last", or most frequent = "mostfreq"
-## 4 means every hour instead of 15 min
+To use the first state to represent all, use method = "first", the last = "last", or the most frequent = "mostfreq".
+
+In the following chunk of code, tspan = 4 means transform to every hour instead of 15 min.
+
+```{r}
 gentime4_seq <- seqgranularity(gentime_seq,
                                   tspan=4, method="mostfreq")
 
 seqdplot(gentime4_seq, border = NA, with.legend = "right", legend.prop=0.4)
+```
 
-#### Modal states sequence ####
+You can see on the tempograms that the granularity decreased and now each step is an hour.
 
+## Modal states sequence 
+
+```{r}
 seqplot(gentime_seq, type="ms", with.legend = "right", legend.prop=0.4)
 ## same as
 seqmsplot(gentime4_seq, with.legend = "right", legend.prop=0.4, main="Modal Sequences")
+```
 
-#transversal enthropy of state distributions
-#the number of valid states and the Shannon entropy of the transversal state
-#distribution.
+## Embrace enthropy
+
+```{r}
 seqHtplot(gentime_seq, with.legend = "right", legend.prop=0.4)
+```
 
+## Calculating Dissimilarities
+Let's subset our sequences b/c it's too big and will take a long time otherwise.
 
-
-#### calculating dissimilarities #####
-
-## let's subset our sequences b/c it's too big and will take a long time otherwise
+```{r, message=FALSE}
 data4om<-seqdef(MyData[1:2000,],
                 var = activities,
                 cnames = t_intervals_labels,
@@ -225,7 +282,12 @@ data4om<-seqdef(MyData[1:2000,],
                 xtstep = 18, ##step between displayed tick-marks and labels on the time x-axis
                 id = MyData[1:2000,]$id)
 
-# seqdist() = for pairwise dissimilarities
+```
+
+## Substitution Cost Matrix
+We need to define the substitution cost for all the transitions (it can be a constant or user-defined).
+
+```{r}
 # seqsubm() = to compute own substitution matrix
 #"TRATE", the costs are determined from the estimated transition rates
 scost <- seqsubm(data4om, method = "TRATE")
@@ -234,105 +296,102 @@ round(scost, 3)
 ## or we can use the usual default one of constant 2:
 ccost <- seqsubm(data4om, method="CONSTANT", cval=2)
 round(ccost, 3)
+```
 
-##optimal matching include both substitutions and indels
-##The cost minimization is achieved through dynamic programming, the algorithm
-##implemented in TraMineR being essentially that of Needleman and Wunsch (1970)
-##For the illustration how the algorithm works go to:
-## https://blogs.ubc.ca/kamilakolpashnikova/optimal-matching-algorithm-interactive-app-for-social-scientists/
+## Optimal Matching
+Optimal matching for calculating dissimilarities between sequences need the specification of both substitution and indel costs.
+The algorithm is developed by Needleman and Wunsch (1970).
+For the illustration how the algorithm works please link to
+[my explanation of optimal matching](https://blogs.ubc.ca/kamilakolpashnikova/optimal-matching-algorithm-interactive-app-for-social-scientists/)
 
-## if heavy, calculate only the upper part of the matrix by full.matrix = FALSE
-## remember that With a
-##constant substitution cost of 2 and an indel cost equal to 1, OM is just LCS (longest common subsequence)
-## default is that substitution cost is twice the indel cost, and default indel cost is 1
+If the sequence file is heavy, calculate only the upper part of the matrix by full.matrix = FALSE
+The usual default is that substitution cost is twice the indel cost, and default indel cost is 1.
+```{r}
 om_gentime <- seqdist(data4om, method = "OM", indel = 1, sm = scost)
 ## this results in a dissimilarity matrix which you can look at using:
 round(om_gentime[1:10, 1:10], 1)
+```
 
-#### cluster analysis ####
+## Cluster Analysis
+Let's run cluster analysis on our dissimilarity matrix
 
-## let's run cluster analysis on our dissimilarity matrix
+Other common methods are:
+
+- "average", 
+- "single", 
+- "complete"  
+
+The "average" and "single" options do not work well for time-use data (check).
+The "complete" option is a possibility (check).
+```{r}
 clusterward <- agnes(om_gentime, diss = TRUE, method = "ward")
-## other common methods are "average", "single", "complete"  
-## "average" and "single" do not work well for time-use data (check)
-## "complete can" be an option
 
 # Convert hclust into a dendrogram and plot
 hcd <- as.dendrogram(clusterward)
 
 # Default plot
 plot(hcd, type = "rectangle", ylab = "Height")
+```
 
-## Triangle plot
-# plot(hcd, type = "triangle", ylab = "Height")
+## How good is our clustering?
 
-#### testing cluster solution ####
+Let's inspect the splitting tree branches:
 
-#inspect the splitting steps
+```{r}
+
 ward.tree <- as.seqtree(clusterward, seqdata = data4om, 
                             diss = om_gentime, 
                             ncluster = 25)
 seqtreedisplay(ward.tree, type = "d", border = NA, show.depth = TRUE) 
+```
 
-#### Checking Clustering Results ####
+Test the cluster solution quality:
 
-#test cluster solution quality
+There are many possible tests:
+
+- PBC. Point Biserial Correlation. Correlation between the given distance matrice and a distance which equal to zero for individuals in the same cluster and one otherwise.
+- HG. Hubert's Gamma. Same as previous but using Kendall's Gamma coefficient.
+- HGSD. Hubert's Gamma (Somers'D). Same as previous but using Somers' D coefficient.
+- ASW. Average Silhouette width (observation).
+- ASWw. Average Silhouette width (weighted).
+- CH. Calinski-Harabasz index (Pseudo F statistics computed from distances).
+- R2. Share of the discrepancy explained by the clustering solution.
+- CHsq. Calinski-Harabasz index (Pseudo F statistics computed from squared distances).
+- R2sq. Share of the discrepancy explained by the clustering solution (computed using squared distances).
+- HC. Hubert's C coefficient.
+- ASW. The Average Silhouette Width of each cluster, one column for each ASW measure.
+
+```{r}
+
 wardtest <- as.clustrange(clusterward,
                          diss = om_gentime, 
                           ncluster = 25)
 
 #plot the quality criteria
-#plot(wardtest,  lwd = 4)
-#plot(wardtest, norm = "zscore", lwd = 4)
 plot(wardtest, stat = c("ASW", "HC", "PBC"), norm = "zscore", lwd = 4)
-#different available statistics:
-#PBC
-#Point Biserial Correlation. Correlation between the given distance matrice and a distance which equal to zero for individuals in the same cluster and one otherwise.
-#
-#HG
-#Hubert's Gamma. Same as previous but using Kendall's Gamma coefficient.
-#
-#HGSD
-#Hubert's Gamma (Somers'D). Same as previous but using Somers' D coefficient.
-#
-#ASW
-#Average Silhouette width (observation).
-#
-#ASWw
-#Average Silhouette width (weighted).
-#
-#CH
-#Calinski-Harabasz index (Pseudo F statistics computed from distances).
-#
-#R2
-#Share of the discrepancy explained by the clustering solution.
-#
-#CHsq
-#Calinski-Harabasz index (Pseudo F statistics computed from squared distances).
-#
-#R2sq
-#Share of the discrepancy explained by the clustering solution (computed using squared distances).
-#
-#HC
-#Hubert's C coefficient.
-#
-#ASW:
-#  The Average Silhouette Width of each cluster, one column for each ASW measure.
+```
 
+Let's say that our solution is pretty good for 10 clusters. 
 
+1. Cut the tree
 
-#### cluster solution ####
-
-#cut tree
+```{r}
 MyData<-MyData[1:2000,]
 c10 <- cutree(clusterward, k = 10)
 MyData<-cbind(MyData, c10)
+```
 
-#plot cluster solution
+2. Plot the cluster solution (will save in the working directory)
+
+```{r}
 png("test.png", 1200, 800)
 seqdplot(data4om, group = c10, border = NA)
 dev.off()
+```
 
+## How to plot a cluster
+
+```{r}
 # subset data by cluster
 cl1<-(data4om[MyData$c10 ==  "1",])
 
@@ -345,9 +404,11 @@ seqdplot(cl1, main = "",
          cpal = getPalette(colourCount), 
          ylab = "",
          border = NA)
+```
 
-#### multinomial regression #####
+## Multinomial Regression on the Clusters
 
+```{r}
 # Format categorical variables
 MyData$c10 <- factor(MyData$c10)
 
@@ -365,3 +426,6 @@ summary(model)
 
 multi1.rrr = exp(coef(model))
 multi1.rrr
+```
+
+[![R build status](https://github.com/Kolpashnikova/SA_workshop_gentime/workflows/R-CMD-check/badge.svg)](https://github.com/Kolpashnikova/SA_workshop_gentime/actions)
