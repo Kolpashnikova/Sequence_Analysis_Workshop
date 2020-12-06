@@ -408,6 +408,8 @@ seqdplot(cl1, main = "",
 
 ## Multinomial Regression on the Clusters
 
+For more details please consult the nnet library documents.
+
 ```{r}
 # Format categorical variables
 MyData$c10 <- factor(MyData$c10)
