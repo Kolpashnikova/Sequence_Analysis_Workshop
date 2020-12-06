@@ -11,21 +11,12 @@
 
 
 #### Loading Necessary Packages ####
-# Load packages we are going to use.
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 
-# load and install (if necessary) required packages for this course
-
-#pacman::p_load(TraMineR, TraMineRextras, cluster, rio, plotrix, 
-#               haven, Hmisc, gganimate, RColorBrewer, colorspace, 
-#               knitr, kableExtra, reshape2, summarytools, vegan, MCMCpack, 
-#               corrplot, ade4, cssTools, WeightedCluster, factoextra,
-#               tidyverse, effects, margins, psych, devtools, 
-#               broom, nnet, descr, here, magrittr)
-
-
-pacman::p_load(TraMineR, TraMineRextras, cluster, RColorBrewer, devtools, haven, tidyverse, reshape2, WeightedCluster)
+# load and install packages
+pacman::p_load(TraMineR, TraMineRextras, cluster, RColorBrewer, devtools, haven, 
+               tidyverse, reshape2, WeightedCluster, nnet)
 
 ## load dta dataset
 ## remember that in r, it's forward slashes
@@ -303,14 +294,15 @@ c10 <- cutree(clusterward, k = 10)
 MyData<-cbind(MyData, c10)
 
 #plot cluster solution
-dev.off()
+png("test.png", 1200, 800)
 seqdplot(data4om, group = c10, border = NA)
+dev.off()
 
 # subset data by cluster
-cl1<-(data4om[MyData$c6 ==  "1",])
+cl1<-(data4om[MyData$c10 ==  "1",])
 
 # plot the selected cluster 
-
+par(mfrow=c(1,1))
 seqdplot(cl1, main = "",
          cex.main = 1.7, 
          with.legend = FALSE, 
@@ -322,20 +314,15 @@ seqdplot(cl1, main = "",
 #### multinomial regression #####
 
 # Format categorical variables
-MyData$c6 <- factor(MyData$c6)
+MyData$c10 <- factor(MyData$c10)
 
-# Set the reference group for c5 to be 1 (workers)
-MyData$c6 <- relevel(MyData$c6, ref=1)
+# Set the reference group for c1 to be 1
+MyData$c10 <- relevel(MyData$c10, ref=1)
 
 # Run the model
-model <- multinom(c6~URBAN+SEX+CARER+factor(INCOME), data=MyData, na.action=na.omit)
+model <- multinom(c10~URBAN+SEX+CARER+factor(INCOME), data=MyData, na.action=na.omit)
 
 summary(model)
-
-z <- summary(model)$coefficients/summary(model)$standard.errors
-# 2-tailed Wald z tests to test significance of coefficients
-p <- (1 - pnorm(abs(z), 0, 1)) * 2
-p
 
 ##Multinomial logit model: relative risk ratios
 # Relative risk ratios allow an easier interpretation of the logit coefficients. 
@@ -343,7 +330,3 @@ p
 
 multi1.rrr = exp(coef(model))
 multi1.rrr
-
-## number of observations in the total model
-length(residuals(model)[,5])
-
