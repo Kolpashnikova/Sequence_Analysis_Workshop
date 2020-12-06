@@ -471,7 +471,7 @@ cost is twice the indel cost, and default indel cost is 1.
 
     ##  [>] computing distances using the OM metric
 
-    ##  [>] elapsed time: 30.118 secs
+    ##  [>] elapsed time: 29.715 secs
 
     ## this results in a dissimilarity matrix which you can look at using:
     round(om_gentime[1:10, 1:10], 1)
