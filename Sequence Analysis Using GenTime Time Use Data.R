@@ -1,22 +1,36 @@
+#### History of SA in Social Sciences ####
+# although sequence analysis has been used for a long time, it only took off
+# in social science
+# since the development of TraMineR package in R (thanks to Geneva team)
+# although the name of the package is commonly pronounced as truh-mai-ner
+# it is likely that originally it should be truh-mee-ner
+# because it's a type of grape
 
+# IMPORTANT
+# sequence analysis is largely a descriptive technique
+
+
+#### Loading Necessary Packages ####
 # Load packages we are going to use.
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 
 # load and install (if necessary) required packages for this course
 
-pacman::p_load(TraMineR, TraMineRextras, cluster, rio, plotrix, 
-               haven, Hmisc, gganimate, RColorBrewer, colorspace, 
-               knitr, kableExtra, reshape2, summarytools, vegan, MCMCpack, 
-               corrplot, ade4, cssTools, WeightedCluster, factoextra,
-               tidyverse, effects, margins, psych, devtools, 
-               broom, nnet, descr, here, magrittr)
+#pacman::p_load(TraMineR, TraMineRextras, cluster, rio, plotrix, 
+#               haven, Hmisc, gganimate, RColorBrewer, colorspace, 
+#               knitr, kableExtra, reshape2, summarytools, vegan, MCMCpack, 
+#               corrplot, ade4, cssTools, WeightedCluster, factoextra,
+#               tidyverse, effects, margins, psych, devtools, 
+#               broom, nnet, descr, here, magrittr)
 
+
+pacman::p_load(TraMineR, TraMineRextras, cluster, RColorBrewer, devtools, haven, tidyverse, reshape2, WeightedCluster)
 
 ## load dta dataset
 ## remember that in r, it's forward slashes
 ## unlike read.dta read_dta reads all versions of stata
-data<-read_dta("/Users/kamilakolpashnikova//OneDrive - Nexus365/Data files - Copy/TWtimeuse/Taiwan Sequence Files/Taiwan 2004 sequences.dta")
+data<-read_dta("~/Dropbox/GenTime research - shared all/workshopSA/Taiwan 2004 sequences.dta")
 
 ## create id if id is not present in the dataset
 data$id <- as.numeric(paste(data$HLDID, data$PERSID, sep = ""))
@@ -31,10 +45,9 @@ activities
 
 # I create an object with intervals' labels. Sequences start at 00:00 AM:
 
-###########
-########### Sequence analysis #####
-###########
+#### Sequence Analysis #####
 
+# depending on your own sequence intervals these labels need to be adjusted
 t_intervals_labels <-  c("00:00", "00:15","00:30","00:45",
                          "01:00", "01:15","01:30","01:45",
                          "02:00", "02:15","02:30","02:45",
@@ -60,14 +73,46 @@ t_intervals_labels <-  c("00:00", "00:15","00:30","00:45",
                          "22:00", "22:15","22:30","22:45",
                          "23:00", "23:15","23:30","23:45")
 
-## Setting a user defined color palette
+#### colour palette ####
 
 ## let's brew some colours first
 ## number of colours is the number of states (in the alphabet)
+## interesting resource on colors (cheatsheet): 
+## https://www.nceas.ucsb.edu/sites/default/files/2020-04/colorPaletteCheatsheet.pdf
 colourCount = 13
 getPalette = colorRampPalette(brewer.pal(9, "Set3"))
 
-# Now we can define the sequence object
+## to check the created pallette: 
+## define labels first and count:
+labels = c("sleep", "selfcare", 
+           "eatdrink", "commute",
+           "paidwork", "educatn", "housework",
+           "shopserv", "TVradio", "leisure", 
+           "sportex",
+           "volorgwk",
+           "other activity")
+colourCount = length(labels)
+getPalette = colorRampPalette(brewer.pal(9, "Set3"))
+
+## let's see how our colours look like
+axisLimit <- sqrt(colourCount)+1
+colours=data.frame(x1=rep(seq(1, axisLimit, 1), length.out=colourCount), 
+                   x2=rep(seq(2, axisLimit+1, 1), length.out=colourCount), 
+                   y1=rep(1:axisLimit, each=axisLimit,length.out=colourCount), 
+                   y2=rep(2:(axisLimit+1), each=axisLimit,length.out=colourCount), 
+                   t=letters[1:colourCount], r=labels)
+
+
+ggplot() + 
+  scale_x_continuous(name="x") + 
+  scale_y_continuous(name="y") +
+  geom_rect(data=colours, mapping=aes(xmin=x1, xmax=x2, ymin=y1, ymax=y2, fill=t), color="black", alpha=0.5) +
+  geom_text(data=colours, aes(x=x1+(x2-x1)/2, y=y1+(y2-y1)/2, label=r), size=4) + 
+  scale_fill_manual(values = getPalette(colourCount)) + theme(legend.position = "none")
+
+
+
+#### define the sequence object ####
 # 
 # subset the data if you need to
 # data <- data[which(data$v19==1),]
@@ -81,7 +126,7 @@ gentime_seq <- seqdef(MyData,
                         cnames = t_intervals_labels,
                         alphabet = c("1", "2", "3", "4", "5",
                                      "6", "7", "8","9", "10",
-                                     "11", "12", "13"), ## notice that I don't have 8 ) you might have it check the data
+                                     "11", "12", "13"), 
                         labels = c("sleep", "selfcare", 
                                    "eatdrink", "commute",
                                    "paidwork", "educatn", "housework",
@@ -96,6 +141,7 @@ gentime_seq <- seqdef(MyData,
 
 ## check how the sequence looks like
 print(gentime_seq[1:5, ], format = "SPS")
+## "STS" format shows each step
 
 #### PLOTTING SEQUENCES ####
 
@@ -108,8 +154,10 @@ seqiplot(gentime_seq, border = NA, with.legend = "right", legend.prop=0.4)
 
 ##also to plot all you can use seqIplot
 seqIplot(gentime_seq, border = NA, with.legend = "right", legend.prop=0.4, idxs = 1:4)
+## seqIplot(gentime_seq, border = NA, with.legend = "right", legend.prop=0.4)
+## the difference is that capital I has idxs=0 as default -- do not run the commented line right now, it will take forever
 
-##
+## MOST FREQUENT SEQUENCES --usually useless for time-use sequences with many steps
 ## tabulate 4 frequent sequences:
 ## because there are 96 steps there are barely any
 ## this is more useful for shorter sequences with many commonalities (as in life-course research)
@@ -123,13 +171,24 @@ seqfplot(caregiver_seq, border = NA, with.legend = "right", legend.prop=0.4)
 ##again, frequencies is not very useful for TU seqs
 ##because very few of them repeat themselves with 96 steps
 
-## transitions from state to state
+## state distribution plots (aka tempogram aka chronogram)
+## this is an easy way to plot a tempogram 
+seqdplot(gentime_seq, border = NA, with.legend = "right", legend.prop=0.4)
+
+#### Transitions ####
+
+## transitions from state to state (in probabilities)
 trate <- seqtrate(gentime_seq)
 round(trate, 2)
 
-## state distribution plots (aka tempogram)
-## this is an easy way to plot a tempogram 
-seqdplot(gentime_seq, border = NA, with.legend = "right", legend.prop=0.4)
+## heatmap of the transitions matrix
+heatTrate=melt(trate)
+head(heatTrate)
+
+ggplot(heatTrate, aes(Var2, Var1)) +
+  geom_tile(aes(fill = value)) +
+  geom_text(aes(label = round(value, 2))) +
+  scale_fill_continuous(high = "#132B43", low = "#56B1F7", name="Transitions")
 
 
 #### changing granularity (number of steps in a sequence) ####
@@ -141,10 +200,9 @@ gentime4_seq <- seqgranularity(gentime_seq,
 
 seqdplot(gentime4_seq, border = NA, with.legend = "right", legend.prop=0.4)
 
-## =====================
 #### Modal states sequence ####
-## =====================
-seqplot(gentime_seq, type="ms")
+
+seqplot(gentime_seq, type="ms", with.legend = "right", legend.prop=0.4)
 ## same as
 seqmsplot(gentime4_seq, with.legend = "right", legend.prop=0.4, main="Modal Sequences")
 
@@ -181,25 +239,31 @@ data4om<-seqdef(MyData[1:2000,],
 scost <- seqsubm(data4om, method = "TRATE")
 round(scost, 3)
 ## calculated in this way, all are close to 2 anyway (for this dataset) 2 is default
+## or we can use the usual default one of constant 2:
+ccost <- seqsubm(data4om, method="CONSTANT", cval=2)
+round(ccost, 3)
 
 ##optimal matching include both substitutions and indels
 ##The cost minimization is achieved through dynamic programming, the algorithm
-##implemented in TraMineR being essentially that of Needleman and Wunsch (1970) with
-##standard optimizations.
-
+##implemented in TraMineR being essentially that of Needleman and Wunsch (1970)
+##For the illustration how the algorithm works go to:
+## https://blogs.ubc.ca/kamilakolpashnikova/optimal-matching-algorithm-interactive-app-for-social-scientists/
 
 ## if heavy, calculate only the upper part of the matrix by full.matrix = FALSE
 ## remember that With a
 ##constant substitution cost of 2 and an indel cost equal to 1, OM is just LCS (longest common subsequence)
 ## default is that substitution cost is twice the indel cost, and default indel cost is 1
-
-
 om_gentime <- seqdist(data4om, method = "OM", indel = 1, sm = scost)
+## this results in a dissimilarity matrix which you can look at using:
+round(om_gentime[1:10, 1:10], 1)
 
 #### cluster analysis ####
 
 ## let's run cluster analysis on our dissimilarity matrix
 clusterward <- agnes(om_gentime, diss = TRUE, method = "ward")
+## other common methods are "average", "single", "complete"  
+## "average" and "single" do not work well for time-use data (check)
+## "complete can" be an option
 
 # Convert hclust into a dendrogram and plot
 hcd <- as.dendrogram(clusterward)
@@ -215,13 +279,15 @@ plot(hcd, type = "rectangle", ylab = "Height")
 #inspect the splitting steps
 ward.tree <- as.seqtree(clusterward, seqdata = data4om, 
                             diss = om_gentime, 
-                            ncluster = 6)
+                            ncluster = 25)
 seqtreedisplay(ward.tree, type = "d", border = NA, show.depth = TRUE) 
+
+#### Checking Clustering Results ####
 
 #test cluster solution quality
 wardtest <- as.clustrange(clusterward,
                          diss = om_gentime, 
-                          ncluster = 6)
+                          ncluster = 25)
 
 #plot the quality criteria
 plot(wardtest,  lwd = 4)
@@ -233,11 +299,12 @@ plot(wardtest, stat = c("ASW", "HC", "PBC"), norm = "zscore", lwd = 4)
 
 #cut tree
 MyData<-MyData[1:2000,]
-c6 <- cutree(clusterward, k = 6)
-MyData<-cbind(MyData, c6)
+c10 <- cutree(clusterward, k = 10)
+MyData<-cbind(MyData, c10)
 
 #plot cluster solution
-seqdplot(data4om, group = c6, border = NA)
+dev.off()
+seqdplot(data4om, group = c10, border = NA)
 
 # subset data by cluster
 cl1<-(data4om[MyData$c6 ==  "1",])
