@@ -430,4 +430,3 @@ multi1.rrr = exp(coef(model))
 multi1.rrr
 ```
 
-[![R build status](https://github.com/Kolpashnikova/SA_workshop_gentime/workflows/R-CMD-check/badge.svg)](https://github.com/Kolpashnikova/SA_workshop_gentime/actions)
