@@ -2,7 +2,7 @@
 title: "Workshop: Doing Sequence Analysis"
 author: Kamila Kolpashnikova^[University of Oxford]
 
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
