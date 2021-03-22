@@ -132,7 +132,7 @@ gentime_seq <- seqdef(MyData,
 ## if you have weights then add ===>  weights = MyData$Weight)
 
 ## check how the sequence looks like
-print(gentime_seq[1:5, ], format = "SPS")
+print(gentime_seq[1:5, ], format = "STS")
 ## "STS" format shows each step
 
 #### PLOTTING SEQUENCES ####
