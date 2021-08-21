@@ -21,10 +21,10 @@ pacman::p_load(TraMineR, TraMineRextras, cluster, RColorBrewer, devtools, haven,
 ## load dta dataset
 ## remember that in r, it's forward slashes
 ## unlike read.dta read_dta reads all versions of stata
-data<-read_dta("~/Dropbox/GenTime research - shared all/workshopSA/Taiwan 2004 sequences.dta")
+data<-read_dta("sample_data.dta")
 
 ## create id if id is not present in the dataset
-data$id <- as.numeric(paste(data$HLDID, data$PERSID, sep = ""))
+data$id <- as.numeric(seq.int(nrow(data)))
 
 ## specify the names for the activity variables
 activities<-c()
