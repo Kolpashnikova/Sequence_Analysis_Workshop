@@ -50,10 +50,10 @@ Load .dta (Stata) Dataset
 Remember that in r, it’s forward slashes. Unlike read.dta, read\_dta
 reads all versions of stata files.
 
-    data<-read_dta("~/Dropbox/GenTime research - shared all/workshopSA/Taiwan 2004 sequences.dta")
+    data<-read_dta("sample_data.dta")
 
     ## create id if id is not present in the dataset
-    data$id <- as.numeric(paste(data$HLDID, data$PERSID, sep = ""))
+    data$id <- as.numeric(seq.int(nrow(data)))
 
 Specify the names for the activity variables. These are the names we
 harmonized using the agreed naming conventions.
