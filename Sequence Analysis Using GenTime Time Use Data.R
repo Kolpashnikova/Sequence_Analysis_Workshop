@@ -361,7 +361,7 @@ summary(model)
 
 ##Multinomial logit model: relative risk ratios
 # Relative risk ratios allow an easier interpretation of the logit coefficients. 
-#They are the exponentiatedvalue of the logit coefficients.
+#They are the exponentiated value of the logit coefficients.
 
 multi1.rrr = exp(coef(model))
 multi1.rrr
